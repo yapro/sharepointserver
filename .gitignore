@@ -1,0 +1,11 @@
+/.idea
+/classes
+/curl
+/docs
+/php-wsdl-creator
+/php-wsdl-generator
+/soap-sms-service
+/test
+/test.php
+/xml.php
+/client.php
