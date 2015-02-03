@@ -1,4 +1,14 @@
 <?php
+/**
+ * совет: для тестирования используйте не доменное имя, а IP адрес
+ */
+include_once(__DIR__.'/OutlookCalendar.php');
+$userId = 1;
+$class = new OutlookCalendar();
+$link = $class->getStsSyncLink($userId);
+echo '<a href="'.$link.'">stssync</a>';
+exit;
+
 /*trigger_error(print_r($_GET,1),E_USER_NOTICE);
 echo ':'.time();
 $params = array(
@@ -27,7 +37,7 @@ $params = array(
     'base-url' => urlencode('http://192.168.63.214/index.php'),// адрес страницы авторизации на сервере авторизации
     'list-url' => urlencode('/calendarPage'),// адрес календаря
   // Идентификатор GUID, который уникально идентифицирует удаленный список. Должен быть в формате "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}", где каждый X представляет собой шестнадцатеричный символ.
-    'guid' => '%7BAA7D945C%2DE5C3%2D4854%2DB631%2D10A98E711E2B%7D',
+    'guid' => str_replace('-', '%2D', rawurlencode('{AA7D945C-E5C3-4854-B631-10A98E711E2B}')),
     'site-name' => 'Lebnik',
     'list-name' => 'Lebedenko'
 );
