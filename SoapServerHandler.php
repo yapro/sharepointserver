@@ -18,7 +18,7 @@ class SoapServiceHandler
 	 * возвращает текущее значение токена
 	 * @return string
 	 */
-	private function getLastChangeToken()
+	public function getLastChangeToken()
 	{
 		return $this->lastChangeToken;
 	}
@@ -52,17 +52,17 @@ class SoapServiceHandler
 	/**
 	 * подгружает значение токена из базы данных и сетит его в переменную $this->lastChangeToken
 	 */
-	private function loadLastChangeToken($listName)
+	public function loadLastChangeToken($listName)
 	{
 		$this->setUserId($this->getUserIdByListName($listName));
 		if($q = pg_query('SELECT * FROM bums.outlook_calendar WHERE user_id = '.$this->getUserId())){
-			$lastChangeTokenTime = 0;
+			$lastTime = 0;
 			if($r = pg_fetch_row($q)){
 				// '1;3;1a2650ed-db30-4337-b137-8e5771a08443;635582327934430000;12976'
-				$lastChangeTokenTime = (int)$r['1'];
+				$lastTime = (int)$r['1'];
 			}
 			// сетим время последнего изменения данных
-			return $this->setLastChangeToken($lastChangeTokenTime);
+			return $this->setLastChangeToken($lastTime);
 		}
 		throw new \Exception('problems with database');
 	}
@@ -93,73 +93,14 @@ class SoapServiceHandler
 	 */
 	private function updateLastChangeToken()
 	{
-		$lastChangeTokenTime = time();
+		$lastTime = time();
 		if(!pg_query('UPDATE bums.outlook_calendar
-		SET lastChangeTokenTime = '.$lastChangeTokenTime.'
+		SET last_time = '.$lastTime.'
 		WHERE user_id = '.$this->getUserId())){
 			throw new \Exception('update database problem');
 		}
-		$this->setLastChangeToken($lastChangeTokenTime);
+		$this->setLastChangeToken($lastTime);
 		return true;
-	}
-
-	public function __call($method, $args)
-	{
-		try {
-
-			logIt('method: '.var_export($method,1));
-			logIt('arguments: '.var_export($args,1));
-
-			if(method_exists($this, $method)) {
-
-				if(empty($args['0'])){
-					throw new Exception('empty $listName');
-				}
-
-				// уникальный идентификатор календаря пользователя
-				$listName = array_shift($args);
-
-				// сетим LastChangeToken из б.д.
-				$this->loadLastChangeToken($listName);
-
-				$xml = call_user_func_array(array($this, $method), $args);
-
-				if(empty($xml)){
-					throw new Exception('empty xml result');
-				}
-
-				// общая часть всех xml-response
-				$xml = '<?xml version="1.0" encoding="utf-8"?>'.$xml;
-
-				// альтернативный адрес по которому можно синхронизировать данные (используется, если
-				// текущий перестанет работать (возможно можно вообще отказаться от него)
-				$AlternateUrls = 'http://'.$_SERVER['HTTP_HOST'].'/index.php/AlternateUrls';
-				$xml = str_replace('$AlternateUrls', $AlternateUrls, $xml);
-
-				$xml = str_replace('$LastChangeToken', $this->getLastChangeToken(), $xml);
-
-				// на время тестов, чтобы Outlook всегда обращался к текущему серверу
-				$xml = str_replace('win-5iml50i9par', $_SERVER['HTTP_HOST'], $xml);
-
-				logIt('RESPONSE:');
-				logIt(xmlFormat($xml));
-				//logIt('apache_response' .var_export(apache_response_headers()));
-				logIt('--------------------------------------------');
-
-				echo $xml;
-				exit;
-
-			}else{
-				$s = sprintf('The required method "%s" does not exist for %s', $method, get_class($this));
-				logIt('Exception: '.$s);
-				throw new Exception($s);
-			}
-		} catch (\Exception $e) {
-			// log errors here as well!
-			$s = $e->getMessage();
-			logIt('Exception: '.$s);
-			throw new SOAPFault('SERVER', $s);
-		}
 	}
 
 	/**
@@ -168,7 +109,7 @@ class SoapServiceHandler
 	 * @return string
 	 * @throws Exception
 	 */
-	private function GetList()
+	public function GetList()
 	{
 		return file_get_contents(__DIR__.'/templates/GetList.xml');
 		/*
@@ -190,13 +131,13 @@ class SoapServiceHandler
 	 * возвращает изменения, внесенные в указанный список, согласно состоянию токена, а
 	 * если токен не указан - возвращает все события
 	 *
-	 * @param stdClass $obj - объекты с какими-то данными
-	 * @param stdClass $obj2 - объекты с какими-то данными
+	 * @param SimpleXMLElement $obj - объекты с какими-то данными
+	 * @param SimpleXMLElement $obj2 - объекты с какими-то данными
 	 * @param string $token - может и не быть переданными
 	 * @return string
 	 * @throws Exception
 	 */
-	private function GetListItemChangesSinceToken(\stdClass $obj, \stdClass $obj2, $token = null)
+	public function GetListItemChangesSinceToken(\SimpleXMLElement $obj, \SimpleXMLElement $obj2, $token = null)
 	{
 		if(empty($token)){
 
@@ -315,17 +256,64 @@ class SoapServiceHandler
 	/**
 	 * вызывается при изменении или удалении события
 	 *
-	 * @param stdClass $obj
-	 * @param null $tmp
-	 * @param null $tmp2
+	 * @param SimpleXMLElement $obj
 	 * @return string
 	 * @throws Exception
 	 */
-	private function UpdateListItems(\stdClass $obj, $tmp = null, $tmp2 = null)
+	public function UpdateListItems(\SimpleXMLElement $obj)
 	{
 		if(empty($obj->Batch->Method)){
 			throw new \Exception('empty event info');
 		}
+
+		foreach($obj->Batch->Method as $event){
+
+			//$event = clone $event1;
+			$arguments = (array)$event->Field;
+
+			unset($arguments['@attributes']);
+
+			if(empty($arguments)){
+				throw new \Exception('event arguments is empty');
+			}
+
+			$method = (string)$event['Cmd'];
+
+			if(empty($method)){
+				throw new \Exception('Cmd not found');
+			}
+
+			// если выполняется обновление данных события
+			if(count($arguments) > 1){
+				$arguments = array($arguments);
+			}
+
+			if(!call_user_func_array(array($this, $method), $arguments)){
+				throw new \Exception('Cmd not executed');
+			}
+		}
+		// возвращаем информацию о удалении
+		return file_get_contents(__DIR__.'/templates/UpdateListItemsDelete.xml');
+
+		if(count($obj->Batch->Method->Field) == 1){
+
+			// возвращаем информацию о удалении
+			return file_get_contents(__DIR__.'/templates/UpdateListItemsDelete.xml');
+		}else{
+			// обновляем события в б.д. и возвращаем данные обновленных событий
+			return file_get_contents(__DIR__.'/templates/UpdateListItems.xml');
+		}
+	}
+
+	/**
+	 * обновляет данные события
+	 *
+	 * @param array $event - новые данные события
+	 *
+	 * @return bool - true в случае успеха
+	 */
+	private function Update(array $event)
+	{
 
 		list($ID,
 				$owshiddenversion,
@@ -342,21 +330,27 @@ class SoapServiceHandler
 				$MetaInfoIntendedBusyStatus,
 				$MetaInfoBusyStatus,
 				$MetaInfoCategories,
-				$MetaInfovti_versionhistory) = $obj->Batch->Method->Field;
+				$MetaInfovti_versionhistory) = $event;
 
-		if(count($obj->Batch->Method->Field) == 1){
+		// обновляем информацию в базе данных
 
-			// удаляем событие в б.д. (фэйк-дропним событие)
-			$event_id = $obj->Batch->Method->Field;
+		return true;
+	}
 
-			// обновляем токен в б.д.
-			$this->updateLastChangeToken();
+	/**
+	 * удаляет событие
+	 *
+	 * @param int $eventId - ИД события
+	 *
+	 * @return bool - true в случае успеха
+	 */
+	private function Delete($eventId)
+	{
+		// удаляем событие в б.д. (фэйк-дропним событие)
 
-			// возвращаем информацию о удалении
-			return file_get_contents(__DIR__.'/templates/UpdateListItemsDelete.xml');
-		}else{
-			// обновляем события в б.д. и возвращаем данные обновленных событий
-			return file_get_contents(__DIR__.'/templates/UpdateListItems.xml');
-		}
+		// обновляем токен в б.д.
+		$this->updateLastChangeToken();
+
+		return true;
 	}
 }

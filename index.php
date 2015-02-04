@@ -29,9 +29,11 @@ function xmlFormat($xml){
 	return $xmlDoc->saveXML();
 }
 
+$inputXML = file_get_contents('php://input');
+
 logIt('START: '.date('d.m.Y H:i:s'));
 logIt('REQUEST: '.$_SERVER['REQUEST_URI']);
-logIt(xmlFormat( file_get_contents('php://input') ));
+logIt(xmlFormat($inputXML));
 //logIt('apache_request' .var_export(apache_request_headers()));
 
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
@@ -60,9 +62,53 @@ include_once(__DIR__.'/SoapServerHandler.php');
 9. Мы отвечаем, что ничего не изменилось
  */
 
-$server = new SoapServer(null, array(
-	'uri' => 'http://'.$_SERVER['HTTP_HOST'].'/namespace.php',
-	'soap_version'=>SOAP_1_1
-));
-$server->setObject(new SoapServiceHandler());
-$server->handle();
+$requestObject = simplexml_load_string($inputXML);
+
+if(empty($requestObject->Body)){
+	throw new \Exception('request without method');
+}
+
+$method = key($requestObject->Body);
+$arguments = (array)$requestObject->Body->$method;
+
+logIt('method: '.var_export($method,1));
+logIt('arguments: '.var_export($arguments,1));
+
+//list($listName, $viewFields, $queryOptions, $changeToken) = $arguments;
+
+if(empty($arguments['listName'])){
+	throw new Exception('empty $listName');
+}
+
+$handler = new SoapServiceHandler();
+
+// сетим LastChangeToken из б.д.
+$handler->loadLastChangeToken($arguments['listName']);
+
+unset($arguments['listName']);
+
+$xml = call_user_func_array(array($handler,$method), $arguments);
+
+if(empty($xml)){
+	throw new Exception('empty xml result');
+}
+
+// общая часть всех xml-response
+$xml = '<?xml version="1.0" encoding="utf-8"?>'.$xml;
+
+// альтернативный адрес по которому можно синхронизировать данные (используется, если
+// текущий перестанет работать (возможно можно вообще отказаться от него)
+$AlternateUrls = 'http://'.$_SERVER['HTTP_HOST'].'/index.php/AlternateUrls';
+$xml = str_replace('$AlternateUrls', $AlternateUrls, $xml);
+
+$xml = str_replace('$LastChangeToken', $handler->getLastChangeToken(), $xml);
+
+// на время тестов, чтобы Outlook всегда обращался к текущему серверу
+$xml = str_replace('win-5iml50i9par', $_SERVER['HTTP_HOST'], $xml);
+
+logIt('RESPONSE:');
+logIt(xmlFormat($xml));
+//logIt('apache_response' .var_export(apache_response_headers()));
+logIt('--------------------------------------------');
+
+echo $xml;
