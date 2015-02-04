@@ -3,7 +3,7 @@
 class OutlookCalendar
 {
 	/**
-	 * генерирует и отдает идентификатор календаря и первый token
+	 * генерирует и отдает идентификатор календаря
 	 *
 	 * @param $userId - идентификатор бэкэнд-пользователя
 	 * @return array
@@ -21,12 +21,8 @@ class OutlookCalendar
 		unique enough that if 1,000,000,000 GUIDs per second were generated for 1 year the probability of a duplicate
 		would be only 50%. Or if every human on Earth generated 600,000,000 GUIDs there would only be a 50% probability
 		of a duplicate. */
-		return $listName = '00000000-0000-0000-0000-'.sprintf("%'012s",  $userId);//date('ymdHis');
-		$token = '1;1;'.$listName.';'.time().';1';
-		return array(
-				'listName' => $listName,
-				'token' => $token
-		);
+		return '00000000-0000-0000-0000-'.sprintf("%'012s",  $userId);//date('ymdHis');
+		//$token = '1;1;'.$listName.';'.time().';1';
 	}
 
 	/**
@@ -66,10 +62,5 @@ class OutlookCalendar
 		}
 
 		return 'stssync://sts/?'.implode('&', $paramsStr);
-	}
-
-	public function get( $key )
-	{
-		return $this->registry[$key];
 	}
 }

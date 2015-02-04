@@ -62,7 +62,7 @@ include_once(__DIR__.'/SoapServerHandler.php');
 
 $server = new SoapServer(null, array(
 	'uri' => 'http://'.$_SERVER['HTTP_HOST'].'/namespace.php',
-	'soap_version'=>SOAP_1_2
+	'soap_version'=>SOAP_1_1
 ));
 $server->setObject(new SoapServiceHandler());
 $server->handle();
