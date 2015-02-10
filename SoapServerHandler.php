@@ -148,31 +148,29 @@ class SoapServiceHandler
 				$token != $this->getLastChangeToken()// когда Microsoft Outlook отстает от SharePoint-сервера
 		){
 
-			$token = empty($token)? '2000-01-01 01:01:01+01' : $token;
-
 			// if empty($token) - отдаем весь список существующих событий
-			// return file_get_contents(__DIR__.'/templates/GetListItemChangesSinceToken.xml');
+			$token = empty($token)? '2000-01-01 01:01:01+01' : $token;
 
 			// отдаем новый токен + diff изменений между токенами (появление, изменение, удаление событий)
 			$eventsArray = $this->getNewEvents($token);
 
 			$eventsXml = $this->formatEvents($eventsArray);
 
-			// обновим LastChangeToken в Microsoft Outlook
+			// т.к. новые события найдены - обновим LastChangeToken в Microsoft Outlook
 			if(!empty($eventsArray)){
 				$latest = array_pop($eventsArray);
 				$this->setLastChangeToken($latest['time_updated']);
 			}
 
-			$xml = file_get_contents(__DIR__.'/templates/GetListItemChangesSinceTokenNewToken.xml');
-
-			return str_replace('$eventsXml', $eventsXml, $xml);
-
 		}else{
 
 			// нет изменений - отдаем текущий токен
-			return file_get_contents(__DIR__.'/templates/GetListItemChangesSinceTokenNoChanges.xml');
+			$eventsXml = '<rs:data ItemCount="0"/>';
 		}
+
+		$xml = file_get_contents(__DIR__.'/templates/GetListItemChangesSinceToken.xml');
+
+		return str_replace('$eventsXml', $eventsXml, $xml);
 	}
 
 	/**
@@ -353,7 +351,9 @@ class SoapServiceHandler
 				$arguments = array($arguments);
 			}
 
-			if(!call_user_func_array(array($this, $method), $arguments)){
+			$methodName = ($method == 'New')? 'Create' : $method;
+
+			if(!call_user_func_array(array($this, $methodName), $arguments)){
 				throw new \Exception('Cmd not executed');
 			}
 		}
@@ -370,6 +370,30 @@ class SoapServiceHandler
 			// обновляем события в б.д. и возвращаем данные обновленных событий
 			return file_get_contents(__DIR__.'/templates/UpdateListItems.xml');
 		}
+	}
+
+	private function Create(array $event)
+	{
+
+		list($ID,
+				$Title,
+				$Description,
+				$Location,
+				$EventDate,
+				$EndDate,
+				$fAllDayEvent,
+				$fRecurrence,
+				$EventType,
+				$MetaInfoFollowUp,
+				$MetaInfoPriority,
+				$MetaInfoIntendedBusyStatus,
+				$MetaInfoBusyStatus,
+				$MetaInfoCategories,
+				$MetaInfoReplicationID,
+				$MetaInfovti_versionhistory) = $event;
+		$Description = $this->fixDescription($Description);
+
+		return true;
 	}
 
 	/**
@@ -400,6 +424,7 @@ class SoapServiceHandler
 				$MetaInfovti_versionhistory) = $event;
 
 		// обновляем информацию в базе данных
+		$Description = $this->fixDescription($Description);
 
 		return true;
 	}
@@ -419,5 +444,10 @@ class SoapServiceHandler
 		// $this->updateLastChangeToken(); - не нужно, т.к. дата изменения последнего события и является токеном
 
 		return true;
+	}
+
+	private function fixDescription($value)
+	{
+		return trim(strip_tags($value));
 	}
 }

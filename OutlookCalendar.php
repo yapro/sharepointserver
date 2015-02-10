@@ -47,9 +47,11 @@ class OutlookCalendar
 			'cmd' => 'add-folder',
 			/* base-url - указывает узел SharePoint. Outlook автоматически добавляет к этому адресу URI адрес списков
 			(например, http://site.ru/index.php/_vti_bin/lists.asmx). Отдельные части адреса URL для StsSync поясняются в
-			Спецификации структуры  StsSync) по адресу http://msdn.microsoft.com/cc313101 */
+			Спецификации структуры  StsSync) по адресу http://msdn.microsoft.com/cc313101
+			При клики по кнопке Открыть в браузере (в Outlook) будет открыта страница base-url + /DispForm.aspx?ID=$ID */
 			'base-url' => urlencode('http://'.$_SERVER['HTTP_HOST'].'/index.php'),// он же является адресом авторизации
-			'list-url' => urlencode('/calendarPage'),// адрес календаря в веб-интерфейсе (возможно не обязателен)
+			/* адрес календаря, возможно не обязателен т.к. запрашивается адрес base-url + /_vti_bin/lists.asmx */
+			'list-url' => urlencode('/calendarPage'),
 			/* Идентификатор GUID, который уникально идентифицирует удаленный список. Должен быть в формате
 			{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX} где каждый X представляет собой шестнадцатеричный символ */
 			'guid' => str_replace( '-', '%2D', rawurlencode('{'.$this->generateListName($userId).'}' ) ),
