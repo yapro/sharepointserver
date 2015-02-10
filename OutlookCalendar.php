@@ -28,6 +28,8 @@ class OutlookCalendar
 	/**
 	 * создает ссылку для подключения Outlook к SharePoint-серверу
 	 *
+	 * Описание всех параметров http://msdn.microsoft.com/en-us/library/dd957390(v=office.12).aspx
+	 *
 	 * @param $userId - идентификатор пользователя из б.д.
 	 * @return string - ссылка для подключения Outlook к SharePoint-серверу
 	 * @throws Exception

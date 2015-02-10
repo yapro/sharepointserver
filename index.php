@@ -1,5 +1,4 @@
 <?php
-//header("Content-Type: application/soap+xml; charset=utf-8");
 header("Content-Type: text/xml; charset=utf-8");
 header('Cache-Control: no-store, no-cache');
 header('Expires: '.date('r'));
@@ -50,7 +49,7 @@ $conn = pg_connect('host=localhost port=5432 dbname=master_clean user=bums_www p
 include_once(__DIR__.'/SoapServerHandler.php');
 
 /**
-Стандартная схема взаимодействия:
+Начальная схема взаимодействия:
 1. Outlook посылает запрос получения списка (ожидает авторизацию)
 2. Мы отвечаем ему запросом бэсик-авторизации
 3. Outlook запрашивает логин/пароль у пользователя - пользователь вводит их
@@ -94,7 +93,12 @@ if(empty($xml)){
 }
 
 // общая часть всех xml-response
-$xml = '<?xml version="1.0" encoding="utf-8"?>'.$xml;
+$xml = '<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <soap:Body>
+    '.$xml.'
+    </soap:Body>
+</soap:Envelope>';
 
 // альтернативный адрес по которому можно синхронизировать данные (используется, если
 // текущий перестанет работать (возможно можно вообще отказаться от него)
@@ -102,9 +106,6 @@ $AlternateUrls = 'http://'.$_SERVER['HTTP_HOST'].'/index.php/AlternateUrls';
 $xml = str_replace('$AlternateUrls', $AlternateUrls, $xml);
 
 $xml = str_replace('$LastChangeToken', $handler->getLastChangeToken(), $xml);
-
-// на время тестов, чтобы Outlook всегда обращался к текущему серверу
-$xml = str_replace('win-5iml50i9par', $_SERVER['HTTP_HOST'], $xml);
 
 logIt('RESPONSE:');
 logIt(xmlFormat($xml));

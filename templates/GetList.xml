@@ -1,5 +1,3 @@
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-    <soap:Body>
         <GetListResponse xmlns="http://schemas.microsoft.com/sharepoint/soap/">
             <GetListResult>
                 <List DocTemplateUrl="" DefaultViewUrl="/sites/lebnik/Lists/Calendar/calendar.aspx" MobileDefaultViewUrl="" ID="{1A2650ED-DB30-4337-B137-8E5771A08443}" Title="" Description="" ImageUrl="/_layouts/15/images/itevent.png?rev=23" Name="{1A2650ED-DB30-4337-B137-8E5771A08443}" BaseType="0" FeatureId="{00BFEA71-EC85-4903-972D-EBE475780106}" ServerTemplate="106" Created="20150129 16:33:24" Modified="20150130 16:39:54" LastDeleted="20150129 16:33:24" Version="1" Direction="none" ThumbnailSize="0" WebImageWidth="0" WebImageHeight="0" Flags="541069312" ItemCount="4" AnonymousPermMask="0" RootFolder="/sites/lebnik/Lists/Calendar" ReadSecurity="1" WriteSecurity="1" Author="1073741823" EventSinkAssembly="" EventSinkClass="" EventSinkData="" EmailAlias="" WebFullUrl="/sites/lebnik" WebId="87a5ff4a-1772-4ad6-9928-53d688fed427" SendToLocation="" ScopeId="c1451883-5d32-4d53-874e-90a93b1af8c0" MajorVersionLimit="0" MajorWithMinorVersionsLimit="0" WorkFlowId="00000000-0000-0000-0000-000000000000" HasUniqueScopes="False" NoThrottleListOperations="False" HasRelatedLists="False" Followable="False" AllowDeletion="True" AllowMultiResponses="False" EnableAttachments="True" EnableModeration="False" EnableVersioning="False" HasExternalDataSource="False" Hidden="False" MultipleDataList="False" Ordered="False" ShowUser="True" EnablePeopleSelector="False" EnableResourceSelector="False" EnableMinorVersion="False" RequireCheckout="False" ThrottleListOperations="False" ExcludeFromOfflineClient="False" EnableFolderCreation="False" IrmEnabled="False" IsApplicationList="False" PreserveEmptyValues="False" StrictTypeCoercion="False" EnforceDataValidation="False" MaxItemsPerThrottledOperation="5000">
@@ -891,5 +889,3 @@
                 </List>
             </GetListResult>
         </GetListResponse>
-    </soap:Body>
-</soap:Envelope>
