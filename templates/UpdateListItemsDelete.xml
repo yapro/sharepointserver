@@ -3,7 +3,7 @@
         <UpdateListItemsResponse xmlns="http://schemas.microsoft.com/sharepoint/soap/">
             <UpdateListItemsResult>
                 <Results>
-                    <Result ID="0,Delete">
+                    <Result ID="0,$method">
                         <ErrorCode>0x00000000</ErrorCode>
                     </Result>
                 </Results>

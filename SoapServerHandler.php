@@ -55,11 +55,12 @@ class SoapServiceHandler
 	public function loadLastChangeToken($listName)
 	{
 		$this->setUserId($this->getUserIdByListName($listName));
-		if($q = pg_query('SELECT * FROM bums.outlook_calendar WHERE user_id = '.$this->getUserId())){
+		$this->setUserId(1000027);// временно
+		// if($q = pg_query('SELECT * FROM bums.outlook_calendar WHERE user_id = )){
+		if($q = pg_query('SELECT MAX(time_updated) FROM bums.item WHERE user_created_id = '.$this->getUserId())){
 			$lastTime = 0;
 			if($r = pg_fetch_row($q)){
-				// '1;3;1a2650ed-db30-4337-b137-8e5771a08443;635582327934430000;12976'
-				$lastTime = (int)$r['1'];
+				$lastTime = $r['0'];// '1;3;1a2650ed-db30-4337-b137-8e5771a08443;635582327934430000;12976'
 			}
 			// сетим время последнего изменения данных
 			return $this->setLastChangeToken($lastTime);
@@ -139,16 +140,30 @@ class SoapServiceHandler
 	 */
 	public function GetListItemChangesSinceToken(\SimpleXMLElement $obj, \SimpleXMLElement $obj2, $token = null)
 	{
-		if(empty($token)){
+		$token = 1;// для теста
 
-			// отдаем весь список существующих событий
-			return file_get_contents(__DIR__.'/templates/GetListItemChangesSinceToken.xml');
+		if(
+				empty($token)// при первой синхронизации не посылается токен
+				||
+				$token != $this->getLastChangeToken()// когда Microsoft Outlook отстает от SharePoint-сервера
+		){
 
-		}elseif($token != $this->getLastChangeToken()){
+			$token = empty($token)? '2000-01-01 01:01:01+01' : $token;
+
+			// if empty($token) - отдаем весь список существующих событий
+			// return file_get_contents(__DIR__.'/templates/GetListItemChangesSinceToken.xml');
 
 			// отдаем новый токен + diff изменений между токенами (появление, изменение, удаление событий)
 			$eventsArray = $this->getNewEvents($token);
+
 			$eventsXml = $this->formatEvents($eventsArray);
+
+			// обновим LastChangeToken в Microsoft Outlook
+			if(!empty($eventsArray)){
+				$latest = array_pop($eventsArray);
+				$this->setLastChangeToken($latest['time_updated']);
+			}
+
 			$xml = file_get_contents(__DIR__.'/templates/GetListItemChangesSinceTokenNewToken.xml');
 
 			return str_replace('$eventsXml', $eventsXml, $xml);
@@ -186,13 +201,63 @@ class SoapServiceHandler
 	 */
 	private function getNewEvents($token)
 	{
+		$dt1 = date_create($token);// $dt->format('YmdHis');
+		$dt2 = date_create($this->getLastChangeToken());
+		$min = '2015-01-25 12:42:41+03';//($dt1 > $dt2)? $this->getLastChangeToken() : $token;
+		$max = '2015-01-26 12:42:41+03';//($dt1 > $dt2)? $token : $this->getLastChangeToken();
+
 		// находим diff между токеном $token и $this->getLastChangeToken()
+
+		$data = array();
+		if($q = pg_query('SELECT * FROM bums.item WHERE
+		user_created_id = \''.$this->getUserId().'\' AND
+		time_updated BETWEEN \''.$min.'\' and \''.$max.'\' ORDER BY time_updated')){
+			while($r = pg_fetch_assoc($q)){
+				$data[] = $this->mapEvent($r);
+			}
+		}
+		return $data;
+	}
+
+	/**
+	 * мапит данные события в формат угодный Microsoft Outlook
+	 *
+	 * @param array $r
+	 *
+	 * @return array
+	 */
+	private function mapEvent(array $r)
+	{
+		// если не указано время от и до, то значит событие на весь день
+		if(empty($r['time_from']) || empty($r['time_to'])){
+			$r['time_from'] = $r['date_from'];
+			$r['time_to'] = $r['date_to'];
+			$r['full_day'] = 1;
+		}
+
 		return array(
-				array(
-						'ows_ID'=>2,
-						'ows_Title'=>'time'.time(),
-				)
+			'ows_ID'=>$r['item_id'],
+			'ows_fAllDayEvent'=>($r['full_day']? 1 : 0),
+			'ows_fRecurrence'=>($r['repetition']? 1 : 0),
+			'ows_Created'=>$this->dateFormat($r['time_created']),
+			'ows_Modified'=>$this->dateFormat($r['time_updated']),
+			'ows_EventDate'=>$this->dateFormat($r['time_from']),
+			'ows_EndDate'=>$this->dateFormat($r['time_to']),
+			'ows_Title'=>$r['name'],
+			'ows_Description'=>$r['description'],
 		);
+	}
+
+	/**
+	 * приводит дату времени к формату угодному Microsoft Outlook
+	 *
+	 * @param $date
+	 *
+	 * @return string
+	 */
+	private function dateFormat($date)
+	{
+		return date_create($date)->format('Y-m-d\TH:i:s\Z');
 	}
 
 	/**
@@ -204,37 +269,37 @@ class SoapServiceHandler
 	{
 		// обязательные поля
 		$fields = array(
-				'ows_ID'=>'2',
-				'ows_Attachments'=>'0',
-				'ows_owshiddenversion'=>'2',
-				'ows_Created'=>'2015-02-01T13:21:44Z',
-				'ows_Modified'=>'2015-02-01T14:14:10Z',
-				'ows_ContentTypeId'=>'0x010200FEA33FD05ED01C4A91C5B8FD2B3A9C9F',
-				'ows_EventType'=>'0',
-				'ows_Title'=>'th2222222222222222',
-				'ows_Description'=>'&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&lt;div dir=&quot;LTR&quot;&gt;&lt;fontface=&quot;Calibri&quot;&gt;ttttttttttttttttttttt&lt;/font&gt;&lt;/div&gt;&#10;&#10;&#10;',
-				'ows_Location'=>'mmmmmmmmmmmmmmmmmm',
-				'ows_EventDate'=>'2015-01-30T00:00:00Z',
-				'ows_EndDate'=>'2015-01-30T23:59:00Z',
-				'ows_fAllDayEvent'=>'1',
-				'ows_Duration'=>'86340',
-				'ows_fRecurrence'=>'0',
-				'ows_Editor'=>'1073741823;#  ,#SHAREPOINT\system,#,#,#  ',
-				'ows_PermMask'=>'0x7fffffffffffffff',
-				'ows__ModerationStatus'=>'0',
-				'ows__Level'=>'1',
-				'ows_UniqueId'=>'2;#{F336191C-4B8D-4EAA-BFE3-65A648976041}',
-				'ows_FSObjType'=>'2;#0',
-				'ows_FileRef'=>'2;#sites/lebnik/Lists/Calendar/2_.000',
-				'ows_MetaInfo_vti_versionhistory'=>'00000000000000000000000000000000:1,2fa454dc8373da4bbe5e3ba2a8701f73:2',
-				'ows_MetaInfo_Categories'=>'',
-				'ows_MetaInfo_IntendedBusyStatus'=>'-1',
-				'ows_MetaInfo_vti_externalversion'=>'2',
-				'ows_MetaInfo_FollowUp'=>'',
-				'ows_MetaInfo_Priority'=>'0',
-				'ows_MetaInfo_ReplicationID'=>'{23ABF7AA-4A85-4F75-93D1-9163E4ED4462}',
-				'ows_MetaInfo_vti_clientversion'=>'2',
-				'ows_MetaInfo_BusyStatus'=>'0'
+			'ows_ID'=>'2',
+			'ows_Attachments'=>'0',
+			'ows_owshiddenversion'=>'2',
+			'ows_Created'=>'2015-02-01T13:21:44Z',
+			'ows_Modified'=>'2015-02-01T14:14:10Z',
+			'ows_ContentTypeId'=>'0x010200FEA33FD05ED01C4A91C5B8FD2B3A9C9F',
+			'ows_EventType'=>'0',
+			'ows_Title'=>'th2222222222222222',
+			'ows_Description'=>'htmlspecialchars(HTML)',
+			'ows_Location'=>'mmmmmmmmmmmmmmmmmm',
+			'ows_EventDate'=>'2015-01-30T00:00:00Z',
+			'ows_EndDate'=>'2015-01-30T23:59:00Z',
+			'ows_fAllDayEvent'=>'1',
+			'ows_Duration'=>'86340',
+			'ows_fRecurrence'=>'0',
+			'ows_Editor'=>'1073741823;#  ,#SHAREPOINT\system,#,#,#  ',
+			'ows_PermMask'=>'0x7fffffffffffffff',
+			'ows__ModerationStatus'=>'0',
+			'ows__Level'=>'1',
+			'ows_UniqueId'=>'2;#{F336191C-4B8D-4EAA-BFE3-65A648976041}',
+			'ows_FSObjType'=>'2;#0',
+			'ows_FileRef'=>'2;#sites/lebnik/Lists/Calendar/2_.000',
+			'ows_MetaInfo_vti_versionhistory'=>'00000000000000000000000000000000:1,2fa454dc8373da4bbe5e3ba2a8701f73:2',
+			'ows_MetaInfo_Categories'=>'',
+			'ows_MetaInfo_IntendedBusyStatus'=>'-1',
+			'ows_MetaInfo_vti_externalversion'=>'2',
+			'ows_MetaInfo_FollowUp'=>'',
+			'ows_MetaInfo_Priority'=>'0',
+			'ows_MetaInfo_ReplicationID'=>'{23ABF7AA-4A85-4F75-93D1-9163E4ED4462}',
+			'ows_MetaInfo_vti_clientversion'=>'2',
+			'ows_MetaInfo_BusyStatus'=>'0'
 		);
 
 		$result = array();
@@ -247,7 +312,7 @@ class SoapServiceHandler
 				}
 				$array[] = $k.'="'.$v.'"';
 			}
-			$result[] = '<z:row '.implode(' ', $array).'>';
+			$result[] = '<z:row '.implode(' ', $array).'/>';
 		}
 
 		return '<rs:data ItemCount="'.count($result).'">'.implode('', $result).'</rs:data>';
@@ -293,7 +358,9 @@ class SoapServiceHandler
 			}
 		}
 		// возвращаем информацию о удалении
-		return file_get_contents(__DIR__.'/templates/UpdateListItemsDelete.xml');
+		$xml = file_get_contents(__DIR__.'/templates/UpdateListItemsDelete.xml');
+
+		return str_replace('$method', $method, $xml);
 
 		if(count($obj->Batch->Method->Field) == 1){
 
@@ -347,9 +414,9 @@ class SoapServiceHandler
 	private function Delete($eventId)
 	{
 		// удаляем событие в б.д. (фэйк-дропним событие)
-
+		$a = 1;
 		// обновляем токен в б.д.
-		$this->updateLastChangeToken();
+		// $this->updateLastChangeToken(); - не нужно, т.к. дата изменения последнего события и является токеном
 
 		return true;
 	}

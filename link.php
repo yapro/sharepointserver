@@ -3,7 +3,7 @@
  * совет: для тестирования используйте не доменное имя, а IP адрес
  */
 include_once(__DIR__.'/OutlookCalendar.php');
-$userId = 1;
+$userId = 1000027;
 $class = new OutlookCalendar();
 $link = $class->getStsSyncLink($userId);
 echo '<a href="'.$link.'">stssync</a>';
