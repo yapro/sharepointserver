@@ -1,0 +1,29 @@
+{
+  "name":        "yapro/sharepointserver",
+  "description": "The implementation SharePoint server on php, for sync your data calendar between your backend and microsoft outlook.",
+  "version":     "0.0.7",
+  "type":        "bundle",
+  "keywords":    ["Implementation", "SharePoint", "server", "outlook"],
+  "homepage":    "http://github.com/yapro/sharepointserver",
+  "license":     "MIT",
+
+  "authors": [
+    {
+      "name": "Lebedenko Nikolay",
+      "email": "totx@ya.ru",
+      "homepage": "http://yapro.ru"
+    }
+  ],
+
+  "require": {
+    "php": ">=5.3.3"
+  },
+
+  "autoload": {
+    "psr-0": {
+      "SharePoint": ""
+    }
+  },
+
+  "target-dir": ""
+}

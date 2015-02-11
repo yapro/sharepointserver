@@ -46,20 +46,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 $conn = pg_connect('host=localhost port=5432 dbname=master_clean user=bums_www password=__www_www_bumsik__');
 
-include_once(__DIR__.'/SoapServerHandler.php');
-
-/**
-Начальная схема взаимодействия:
-1. Outlook посылает запрос получения списка (ожидает авторизацию)
-2. Мы отвечаем ему запросом бэсик-авторизации
-3. Outlook запрашивает логин/пароль у пользователя - пользователь вводит их
-4. Outlook посылает нам запрос с логином/паролем в хедерах + повторяет пункт 1
-5. Мы отвечаем ему списком GetList
-6. Outlook посылает нам запрос GetListItemChangesSinceToken
-7. Мы отвечаем ему списком событий + последний токен (который мы формируем)
-8. Outlook посылает нам запрос GetListItemChangesSinceToken + последний токен (который мы ему послали)
-9. Мы отвечаем, что ничего не изменилось
- */
+include_once(__DIR__.'/SharePoint/Handler.php');
 
 $requestObject = simplexml_load_string($inputXML);
 
@@ -73,13 +60,11 @@ $arguments = (array)$requestObject->Body->$method;
 logIt('method: '.var_export($method,1));
 logIt('arguments: '.var_export($arguments,1));
 
-//list($listName, $viewFields, $queryOptions, $changeToken) = $arguments;
-
 if(empty($arguments['listName'])){
 	throw new Exception('empty $listName');
 }
 
-$handler = new SoapServiceHandler();
+$handler = new SharePoint\Handler();
 
 // сетим LastChangeToken из б.д.
 $handler->loadLastChangeToken($arguments['listName']);

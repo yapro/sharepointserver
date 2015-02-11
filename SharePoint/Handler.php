@@ -1,6 +1,6 @@
 <?php
-
-class SoapServiceHandler
+namespace SharePoint;
+class Handler
 {
 	/**
 	 * это нечто вроде хэша календаря пользователя на стороне бэкэнда (можно использовать дату времени)
@@ -51,16 +51,18 @@ class SoapServiceHandler
 
 	/**
 	 * подгружает значение токена из базы данных и сетит его в переменную $this->lastChangeToken
+	 *
+	 * @param $listName
+	 *
+	 * @throws \Exception
 	 */
 	public function loadLastChangeToken($listName)
 	{
 		$this->setUserId($this->getUserIdByListName($listName));
-		$this->setUserId(1000027);// временно
-		// if($q = pg_query('SELECT * FROM bums.outlook_calendar WHERE user_id = )){
 		if($q = pg_query('SELECT MAX(time_updated) FROM bums.item WHERE user_created_id = '.$this->getUserId())){
 			$lastTime = 0;
 			if($r = pg_fetch_row($q)){
-				$lastTime = $r['0'];// '1;3;1a2650ed-db30-4337-b137-8e5771a08443;635582327934430000;12976'
+				$lastTime = $r['0'];
 			}
 			// сетим время последнего изменения данных
 			return $this->setLastChangeToken($lastTime);
@@ -72,7 +74,6 @@ class SoapServiceHandler
 	 * отдает какие-то настройки календаря (нужно разобраться)
 	 *
 	 * @return string
-	 * @throws Exception
 	 */
 	public function GetList()
 	{
@@ -83,11 +84,11 @@ class SoapServiceHandler
 	 * возвращает изменения, внесенные в указанный список, согласно состоянию токена, а
 	 * если токен не указан - возвращает все события
 	 *
-	 * @param SimpleXMLElement $obj - объекты с какими-то данными
-	 * @param SimpleXMLElement $obj2 - объекты с какими-то данными
+	 * @param \SimpleXMLElement $obj - объекты с какими-то данными
+	 * @param \SimpleXMLElement $obj2 - объекты с какими-то данными
 	 * @param string $token - может и не быть переданными
 	 * @return string
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function GetListItemChangesSinceToken(\SimpleXMLElement $obj, \SimpleXMLElement $obj2, $token = null)
 	{
@@ -114,9 +115,9 @@ class SoapServiceHandler
 	/**
 	 * вызывается SharePoint-клиентом при создании, изменении или удалении события
 	 *
-	 * @param SimpleXMLElement $obj
+	 * @param \SimpleXMLElement $obj
 	 * @return string
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function UpdateListItems(\SimpleXMLElement $obj)
 	{
@@ -247,7 +248,7 @@ class SoapServiceHandler
 	 * @param $listName - идентификатор календаря
 	 *
 	 * @return int
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	private function getUserIdByListName($listName)
 	{
@@ -264,15 +265,15 @@ class SoapServiceHandler
 	 *
 	 * @param $listName
 	 * @return mixed
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	private function checkListName($listName)
 	{
 		if(empty($listName)){
-			throw new Exception('empty listName');
+			throw new \Exception('empty listName');
 		}
 		if(!is_string($listName)){
-			throw new Exception('wrong data type listName');
+			throw new \Exception('wrong data type listName');
 		}
 		return $listName;
 	}
@@ -295,7 +296,7 @@ class SoapServiceHandler
 		$data = array();
 		if($q = pg_query('SELECT * FROM bums.item WHERE
 		user_created_id = \''.$this->getUserId().'\' AND
-		time_updated BETWEEN \''.$min.'\' and \''.$max.'\' ORDER BY time_updated LIMIT 10')){
+		time_updated BETWEEN \''.$min.'\' and \''.$max.'\' ORDER BY time_updated')){// LIMIT 10
 			while($r = pg_fetch_assoc($q)){
 				$data[] = $r;
 			}

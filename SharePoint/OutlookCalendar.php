@@ -1,5 +1,5 @@
 <?php
-
+namespace SharePoint;
 class OutlookCalendar
 {
 	/**
@@ -7,7 +7,7 @@ class OutlookCalendar
 	 *
 	 * @param $userId - идентификатор бэкэнд-пользователя
 	 * @return array
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function generateListName($userId)
 	{
@@ -32,7 +32,7 @@ class OutlookCalendar
 	 *
 	 * @param $userId - идентификатор пользователя из б.д.
 	 * @return string - ссылка для подключения Outlook к SharePoint-серверу
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function getStsSyncLink($userId)
 	{
@@ -51,7 +51,7 @@ class OutlookCalendar
 			(например, http://site.ru/index.php/_vti_bin/lists.asmx). Отдельные части адреса URL для StsSync поясняются в
 			Спецификации структуры  StsSync) по адресу http://msdn.microsoft.com/cc313101
 			При клики по кнопке Открыть в браузере (в Outlook) будет открыта страница base-url + /DispForm.aspx?ID=$ID */
-			'base-url' => urlencode('http://'.$_SERVER['HTTP_HOST'].'/index.php'),// он же является адресом авторизации
+			'base-url' => urlencode('http://'.$_SERVER['HTTP_HOST'].'/SoapServer.php'),// он же является адресом авторизации
 			/* адрес календаря, возможно не обязателен т.к. запрашивается адрес base-url + /_vti_bin/lists.asmx */
 			'list-url' => urlencode('/calendarPage'),
 			/* Идентификатор GUID, который уникально идентифицирует удаленный список. Должен быть в формате
