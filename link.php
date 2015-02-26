@@ -2,9 +2,9 @@
 /**
  * совет: для тестирования используйте не доменное имя, а IP адрес
  */
-include_once(__DIR__.'/OutlookCalendar.php');
+include_once(__DIR__.'/SharePoint/OutlookCalendar.php');
 $userId = 1000027;// ID пользователя на backend, календарь которого нужно синхронизировать с календарем Outlook
-$class = new OutlookCalendar();
+$class = new SharePoint\OutlookCalendar();
 $link = $class->getStsSyncLink($userId);
 echo '<a href="'.$link.'">stssync</a>';
 
