@@ -9,7 +9,8 @@
         RecommendedTimeBetweenSyncs="180"
         MaxBulkDocumentSyncSize="500"
         MaxRecommendedEmbeddedFileSize="500"
-        AlternateUrls="$AlternateUrls">
+        AlternateUrls="$AlternateUrls"
+		  EffectivePermMask="FullMask">
             <Changes LastChangeToken="$LastChangeToken"></Changes>
             $eventsXml
         </listitems>
